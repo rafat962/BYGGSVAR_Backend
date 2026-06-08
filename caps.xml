@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="yes" ?>
+<ServiceExceptionReport version="1.1.0">
+<ServiceException>
+*** UKJENT APPLIKASJON ***
+Applikasjon '/skwms1/wfs.arealplaner'
+er ukjent og kan ikke rutes videre.
+(http://wfs.geonorge.no/skwms1/wfs.arealplaner)
+</ServiceException>
+</ServiceExceptionReport>

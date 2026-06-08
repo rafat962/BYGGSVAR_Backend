@@ -29,6 +29,7 @@ async def get_flood_risk(lat: float, lng: float) -> dict:
             
             result_data = response.json()
             results = result_data.get("results", [])
+            print("results",results)
             
             if results:
                 # Extract details from the first matching flood layer feature
