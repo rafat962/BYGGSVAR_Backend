@@ -36,6 +36,7 @@ async def process_coordinates(lat: float, lng: float) -> dict:
     planning_data, flood_data, heritage_data = await asyncio.gather(
         planning_task, flood_task, heritage_task
     )
+    print("Planning Data",planning_data)
 
     # STEP 6: PDF Registry and Celery Queue placeholder
     # Injected later: trigger_pdf_pipeline(planning_data.get("dokumentUrl"), ... )
