@@ -108,3 +108,4 @@ async def get_planning_data(
             "adapter": "planslurpen_failed",
             "error": str(e)
         }
+    
