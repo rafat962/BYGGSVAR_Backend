@@ -3,11 +3,16 @@ import logging
 from app.integrations.geonorge_client import get_kommune_info, get_coords_from_address
 from app.integrations.matrikkel_client import get_matrikkel_data
 from app.integrations.hazard_client import get_flood_risk, get_heritage_status
-from app.services.municipality_router import get_planning_data
+from app.services.Planning_Data import get_planning_data
+from app.services.get_parcel_document import get_parcel_document
 
 logger = logging.getLogger(__name__)
 
-async def process_coordinates(lat: float, lng: float) -> dict:
+async def process_coordinates(
+    lat: float,
+    lng: float,
+    selected_plan_id: str | None = None
+) -> dict:
     """
     Scenario A: Coordinate-based orchestration pipeline.
     Executes multiple independent API calls in parallel using asyncio.gather.
@@ -36,10 +41,44 @@ async def process_coordinates(lat: float, lng: float) -> dict:
     planning_data, flood_data, heritage_data = await asyncio.gather(
         planning_task, flood_task, heritage_task
     )
-    print("Planning Data",planning_data)
+    print("Planning Data", planning_data)
 
-    # STEP 6: PDF Registry and Celery Queue placeholder
-    # Injected later: trigger_pdf_pipeline(planning_data.get("dokumentUrl"), ... )
+    # STEP 6: Fetch the parcel/plan document (planbestemmelser) for the selected plan
+    parcel_document = None
+    plans = planning_data.get("plans", []) if isinstance(planning_data, dict) else []
+
+    if plans:
+        # Select the target plan: by selected_plan_id if provided, else default to the first
+        target_plan = None
+
+        if selected_plan_id:
+            target_plan = next(
+                (p for p in plans if p.get("plan_id") == selected_plan_id),
+                None
+            )
+
+        if target_plan is None:
+            target_plan = plans[0]
+
+        plan_id = target_plan.get("plan_id")
+        plan_kommune = target_plan.get("kommune") or kommune_nr
+        documents = target_plan.get("documents", [])
+
+        if documents:
+            # Documents already came back from the planregister call - no extra request needed
+            parcel_document = {
+                "adapter": "planregister_documents",
+                "plan_id": plan_id,
+                "documents": documents
+            }
+        elif plan_id:
+            # Fallback: hit the gated nedlasting endpoint for the document
+            parcel_document = await get_parcel_document(
+                plan_kommune, plan_id, api_key="<din-api-nøkkel>"
+            )
+
+    # STEP 7: PDF Registry and Celery Queue placeholder
+    # Injected later: trigger_pdf_pipeline(parcel_document, ...)
 
     # Assembling the final clean response structure
     return {
@@ -53,6 +92,7 @@ async def process_coordinates(lat: float, lng: float) -> dict:
         },
         "boundary_polygon": polygon,
         "planning_details": planning_data,
+        "parcel_document": parcel_document,
         "environmental_hazards": {
             "flood": flood_data,
             "heritage": heritage_data
